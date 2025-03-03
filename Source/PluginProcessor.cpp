@@ -8,6 +8,7 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include <cmath>;
 
 //==============================================================================
 NeutralFaceCompressorAudioProcessor::NeutralFaceCompressorAudioProcessor()
@@ -93,8 +94,7 @@ void NeutralFaceCompressorAudioProcessor::changeProgramName (int index, const ju
 //==============================================================================
 void NeutralFaceCompressorAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
+    deltaTime = 1.0 / sampleRate;
 }
 
 void NeutralFaceCompressorAudioProcessor::releaseResources()
@@ -131,30 +131,39 @@ bool NeutralFaceCompressorAudioProcessor::isBusesLayoutSupported (const BusesLay
 
 void NeutralFaceCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-    juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels  = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
+    int totalNumInputChannels  = getTotalNumInputChannels();
+    int totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+    for (int i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    for (int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); ++sampleIndex)
     {
-        auto* channelData = buffer.getWritePointer (channel);
+        float maxAmplitude = 0.f;
 
-        // ..do something to the data...
+        for (int channel = 0; channel < totalNumInputChannels; ++channel)
+        {
+            maxAmplitude = std::max(abs(buffer.getSample(channel, sampleIndex)), maxAmplitude);
+        }
+
+        if (toDB(lastProcessedSample) > threshold_dB) {
+            float target_dB = threshold_dB - (threshold_dB - toDB(lastProcessedSample)) / ratio;
+            float gainDelta_dB = abs(target_dB - toDB(lastProcessedSample)) * deltaTime / fromMilliseconds(attack);
+
+            gain = dBToGain(toDB(gain) - gainDelta_dB);
+        }
+        else {
+            float gainDelta_dB = abs(toDB(lastUnprocessedSample) - toDB(lastProcessedSample)) * deltaTime / fromMilliseconds(release);
+            gain = dBToGain(toDB(gain) + gainDelta_dB);
+        }
+        
+        for (int channel = 0; channel < totalNumInputChannels; ++channel)
+        {
+            buffer.setSample(channel, sampleIndex, buffer.getSample(channel, sampleIndex) * gain);
+        }
+
+        lastUnprocessedSample = maxAmplitude;
+        lastProcessedSample = maxAmplitude * gain;
     }
 }
 
