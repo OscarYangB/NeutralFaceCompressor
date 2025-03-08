@@ -56,6 +56,47 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    juce::AudioProcessorValueTreeState::ParameterLayout getParameterLayout() {
+        juce::AudioProcessorValueTreeState::ParameterLayout layout;
+
+        layout.add(std::make_unique<juce::AudioParameterFloat>(
+            "threshold",
+            "threshold",
+            juce::NormalisableRange<float>(-50.f, 0.f, 0.1f, 1.0f),
+            -20.f
+        ));
+
+        layout.add(std::make_unique<juce::AudioParameterFloat>(
+            "ratio",
+            "ratio",
+            juce::NormalisableRange<float>(1.0f, 16.0f, 0.1f, 1.0f),
+            4.f
+        ));
+
+        layout.add(std::make_unique<juce::AudioParameterFloat>(
+            "attack",
+            "attack",
+            juce::NormalisableRange<float>(0.f, 500.f, 1.f, 1.0f),
+            10.0f
+        ));
+
+        layout.add(std::make_unique<juce::AudioParameterFloat>(
+            "release",
+            "release",
+            juce::NormalisableRange<float>(0.f, 500.f, 1.f, 1.0f),
+            200.0f
+        ));
+
+        return layout;
+    }
+
+    juce::AudioProcessorValueTreeState apvts = juce::AudioProcessorValueTreeState (
+        *this,
+        nullptr,
+        "Parameters",
+        getParameterLayout()
+    );
+
 private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NeutralFaceCompressorAudioProcessor)
@@ -64,11 +105,6 @@ private:
     float lastProcessedSample = 0.f;
     float lastUnprocessedSample = 0.f;
     float gain = 1.f;
-
-    float threshold_dB = -20.0f;
-    float ratio = 4.0f;
-    float attack = 50.0f;
-    float release = 300.0f;
 
     // Threshold, Ratio, Attack, Release
     // Mix, Makeup Gain, Oversampling
@@ -91,4 +127,5 @@ private:
     static inline float lerp(float a, float b, float t) {
         return t * (b - a);
     }
+    
 };

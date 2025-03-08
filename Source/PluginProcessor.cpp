@@ -137,6 +137,11 @@ void NeutralFaceCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>
     for (int i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
+    float threshold_dB = apvts.getRawParameterValue("threshold")->load();
+    float ratio = apvts.getRawParameterValue("ratio")->load();
+    float attack = apvts.getRawParameterValue("attack")->load();
+    float release = apvts.getRawParameterValue("release")->load();
+    
     for (int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); ++sampleIndex)
     {
         float maxAmplitude = 0.f;
@@ -175,7 +180,7 @@ bool NeutralFaceCompressorAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* NeutralFaceCompressorAudioProcessor::createEditor()
 {
-    return new NeutralFaceCompressorAudioProcessorEditor (*this);
+    return new juce::GenericAudioProcessorEditor (*this);
 }
 
 //==============================================================================
