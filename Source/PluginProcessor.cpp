@@ -140,6 +140,7 @@ void NeutralFaceCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>
     float threshold_dB = apvts.getRawParameterValue("threshold")->load();
     float ratio = apvts.getRawParameterValue("ratio")->load();
     float attack = apvts.getRawParameterValue("attack")->load();
+    attack = attack == 0.f ? 0.2f : attack;
     float release = apvts.getRawParameterValue("release")->load();
     
     for (int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); ++sampleIndex)
@@ -152,14 +153,19 @@ void NeutralFaceCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>
         }
 
         if (toDB(lastProcessedSample) > threshold_dB) {
-            float target_dB = threshold_dB - (threshold_dB - toDB(lastProcessedSample)) / ratio;
-            float gainDelta_dB = abs(target_dB - toDB(lastProcessedSample)) * deltaTime / fromMilliseconds(attack);
+            float a = 5.f;
+            if (lastUnprocessedSample > 0.9f) {
+                a += 2.f;
+            }
 
-            gain = dBToGain(toDB(gain) - gainDelta_dB);
+            float target_dB = threshold_dB - (threshold_dB - toDB(lastProcessedSample)) / ratio;
+            float targetGain_dB = target_dB - toDB(lastProcessedSample);
+            float gain_dB = attack > 0.f ? lerp(toDB(gain), targetGain_dB, deltaTime / fromMilliseconds(attack)) : targetGain_dB;
+            gain = dBToGain(gain_dB);
         }
         else {
-            float gainDelta_dB = abs(toDB(lastUnprocessedSample) - toDB(lastProcessedSample)) * deltaTime / fromMilliseconds(release);
-            gain = dBToGain(toDB(gain) + gainDelta_dB);
+            float gain_dB = release > 0.f ? lerp(toDB(gain), 0.f, deltaTime / fromMilliseconds(release)) : 0.f;
+            gain = dBToGain(gain_dB);
         }
         
         for (int channel = 0; channel < totalNumInputChannels; ++channel)

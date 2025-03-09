@@ -69,21 +69,21 @@ public:
         layout.add(std::make_unique<juce::AudioParameterFloat>(
             "ratio",
             "ratio",
-            juce::NormalisableRange<float>(1.0f, 16.0f, 0.1f, 1.0f),
+            juce::NormalisableRange<float>(1.0f, 16.0f, 0.1f, 0.6f),
             4.f
         ));
 
         layout.add(std::make_unique<juce::AudioParameterFloat>(
             "attack",
             "attack",
-            juce::NormalisableRange<float>(0.f, 500.f, 1.f, 1.0f),
+            juce::NormalisableRange<float>(0.f, 500.f, 1.f, 0.4f),
             10.0f
         ));
 
         layout.add(std::make_unique<juce::AudioParameterFloat>(
             "release",
             "release",
-            juce::NormalisableRange<float>(0.f, 500.f, 1.f, 1.0f),
+            juce::NormalisableRange<float>(0.f, 500.f, 1.f, 0.4f),
             200.0f
         ));
 
@@ -125,7 +125,7 @@ private:
     }
 
     static inline float lerp(float a, float b, float t) {
-        return t * (b - a);
+        return a + t * (b - a);
     }
     
 };
