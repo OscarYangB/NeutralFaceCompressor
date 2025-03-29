@@ -140,40 +140,37 @@ void NeutralFaceCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>
     float threshold_dB = apvts.getRawParameterValue("threshold")->load();
     float ratio = apvts.getRawParameterValue("ratio")->load();
     float attack = apvts.getRawParameterValue("attack")->load();
-    attack = attack == 0.f ? 0.2f : attack;
     float release = apvts.getRawParameterValue("release")->load();
-    
+    float rms = apvts.getRawParameterValue("RMS")->load();
+    bool feedback = apvts.getRawParameterValue("feedback")->load();
+
+    float* const* samples = buffer.getArrayOfWritePointers();
+        
     for (int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); ++sampleIndex)
     {
         float maxAmplitude = 0.f;
 
         for (int channel = 0; channel < totalNumInputChannels; ++channel)
         {
-            maxAmplitude = std::max(abs(buffer.getSample(channel, sampleIndex)), maxAmplitude);
+            maxAmplitude = std::fmax(std::fabs(samples[channel][sampleIndex]), maxAmplitude);
         }
 
-        if (toDB(lastProcessedSample) > threshold_dB) {
-            float a = 5.f;
-            if (lastUnprocessedSample > 0.9f) {
-                a += 2.f;
-            }
+        float rmsCoefficient = 1 - exp(-1000.f / (rms * getSampleRate()));
+        lastUnprocessedSample = lerp(lastUnprocessedSample, maxAmplitude, rmsCoefficient);
+        float controllingSample_dB = feedback ? toDB(lastProcessedSample) : toDB(lastUnprocessedSample);
 
-            float target_dB = threshold_dB - (threshold_dB - toDB(lastProcessedSample)) / ratio;
-            float targetGain_dB = target_dB - toDB(lastProcessedSample);
-            float gain_dB = attack > 0.f ? lerp(toDB(gain), targetGain_dB, deltaTime / fromMilliseconds(attack)) : targetGain_dB;
-            gain = dBToGain(gain_dB);
-        }
-        else {
-            float gain_dB = release > 0.f ? lerp(toDB(gain), 0.f, deltaTime / fromMilliseconds(release)) : 0.f;
-            gain = dBToGain(gain_dB);
-        }
+        float target_dB = threshold_dB - (threshold_dB - controllingSample_dB) / ratio;
+        float targetGain_dB = controllingSample_dB > threshold_dB ? target_dB - controllingSample_dB : 0.f;
+        float envelopeTime = targetGain_dB > toDB(gain) ? release : attack;
+        float coefficient = 1 - exp(-1000.f / (envelopeTime * getSampleRate()));
+        float gain_dB = lerp(toDB(gain), targetGain_dB, coefficient);
+        gain = dBToGain(gain_dB);
         
         for (int channel = 0; channel < totalNumInputChannels; ++channel)
         {
-            buffer.setSample(channel, sampleIndex, buffer.getSample(channel, sampleIndex) * gain);
+            samples[channel][sampleIndex] = samples[channel][sampleIndex] * gain;
         }
 
-        lastUnprocessedSample = maxAmplitude;
         lastProcessedSample = maxAmplitude * gain;
     }
 }

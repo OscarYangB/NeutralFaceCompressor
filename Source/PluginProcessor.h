@@ -76,15 +76,28 @@ public:
         layout.add(std::make_unique<juce::AudioParameterFloat>(
             "attack",
             "attack",
-            juce::NormalisableRange<float>(0.f, 500.f, 1.f, 0.4f),
+            juce::NormalisableRange<float>(0.f, 500.f, 0.1f, 0.2f),
             10.0f
         ));
 
         layout.add(std::make_unique<juce::AudioParameterFloat>(
             "release",
             "release",
-            juce::NormalisableRange<float>(0.f, 500.f, 1.f, 0.4f),
+            juce::NormalisableRange<float>(0.f, 500.f, 0.1f, 0.2f),
             200.0f
+        ));
+
+        layout.add(std::make_unique<juce::AudioParameterFloat>(
+            "RMS",
+            "RMS",
+            juce::NormalisableRange<float>(0.f, 500.f, 0.1f, 0.2f),
+            5.0f
+        ));
+
+        layout.add(std::make_unique<juce::AudioParameterBool>(
+            "feedback",
+            "feedback",
+            false
         ));
 
         return layout;
@@ -102,11 +115,10 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NeutralFaceCompressorAudioProcessor)
 
     double deltaTime;
-    float lastProcessedSample = 0.f;
     float lastUnprocessedSample = 0.f;
+    float lastProcessedSample = 0.f;
     float gain = 1.f;
 
-    // Threshold, Ratio, Attack, Release
     // Mix, Makeup Gain, Oversampling
     // Knee, Lookahead, Look behind, Max Reduction, RMS Size, Hold
     // Feedforward/Feedback, Attack Shape, Release Shape
