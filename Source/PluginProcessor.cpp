@@ -143,7 +143,9 @@ void NeutralFaceCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>
     float release = apvts.getRawParameterValue("release")->load();
     float rms = apvts.getRawParameterValue("RMS")->load();
     bool feedback = apvts.getRawParameterValue("feedback")->load();
-
+    float mix = apvts.getRawParameterValue("mix")->load() / 100.f;
+    float makeUpGain = apvts.getRawParameterValue("gain")->load();
+    
     float* const* samples = buffer.getArrayOfWritePointers();
         
     for (int sampleIndex = 0; sampleIndex < buffer.getNumSamples(); ++sampleIndex)
@@ -167,7 +169,8 @@ void NeutralFaceCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>
         
         for (int channel = 0; channel < totalNumInputChannels; ++channel)
         {
-            samples[channel][sampleIndex] = samples[channel][sampleIndex] * gain;
+            float newSample = (samples[channel][sampleIndex] * (1.f - mix)) + (samples[channel][sampleIndex] * gain * mix);
+            samples[channel][sampleIndex] = newSample * dBToGain(makeUpGain);
         }
 
         lastProcessedSample = maxAmplitude * gain;

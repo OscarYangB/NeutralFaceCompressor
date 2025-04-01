@@ -99,6 +99,20 @@ public:
             "feedback",
             false
         ));
+        
+        layout.add(std::make_unique<juce::AudioParameterFloat>(
+            "mix",
+            "mix",
+            juce::NormalisableRange<float>(0.f, 100.f, 0.1f, 1.f),
+            100.0f
+        ));
+
+        layout.add(std::make_unique<juce::AudioParameterFloat>(
+            "gain",
+            "gain",
+            juce::NormalisableRange<float>(0.f, 16.f, 0.1f, 0.4f),
+            0.0f
+        ));
 
         return layout;
     }
