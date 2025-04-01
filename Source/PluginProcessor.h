@@ -139,5 +139,10 @@ private:
     static inline float lerp(float a, float b, float t) {
         return a + t * (b - a);
     }
+
+    static inline float getCoefficient(float deltaTime_ms, float sampleRate) {
+        // Equivalent to 1 - exp((1/sampleRate) / deltaTime)
+        return 1 - exp(-1000.f / (deltaTime_ms * sampleRate));
+    }
     
 };

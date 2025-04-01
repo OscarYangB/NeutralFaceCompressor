@@ -155,15 +155,14 @@ void NeutralFaceCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>
             maxAmplitude = std::fmax(std::fabs(samples[channel][sampleIndex]), maxAmplitude);
         }
 
-        float rmsCoefficient = 1 - exp(-1000.f / (rms * getSampleRate()));
+        float rmsCoefficient = getCoefficient(rms, getSampleRate());
         lastUnprocessedSample = lerp(lastUnprocessedSample, maxAmplitude, rmsCoefficient);
         float controllingSample_dB = feedback ? toDB(lastProcessedSample) : toDB(lastUnprocessedSample);
 
         float target_dB = threshold_dB - (threshold_dB - controllingSample_dB) / ratio;
         float targetGain_dB = controllingSample_dB > threshold_dB ? target_dB - controllingSample_dB : 0.f;
-        float envelopeTime = targetGain_dB > toDB(gain) ? release : attack;
-        float coefficient = 1 - exp(-1000.f / (envelopeTime * getSampleRate()));
-        float gain_dB = lerp(toDB(gain), targetGain_dB, coefficient);
+        bool isAttacking = toDB(gain) > targetGain_dB;
+        float gain_dB = lerp(toDB(gain), targetGain_dB, getCoefficient(isAttacking ? attack : release, getSampleRate()));
         gain = dBToGain(gain_dB);
         
         for (int channel = 0; channel < totalNumInputChannels; ++channel)
