@@ -99,6 +99,18 @@ public:
             "feedback",
             false
         ));
+
+        layout.add(std::make_unique<juce::AudioParameterBool>(
+            "linear attack",
+            "linear attack",
+            false
+        ));
+
+        layout.add(std::make_unique<juce::AudioParameterBool>(
+            "linear release",
+            "linear release",
+            false
+        ));
         
         layout.add(std::make_unique<juce::AudioParameterFloat>(
             "mix",

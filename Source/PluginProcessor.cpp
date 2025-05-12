@@ -143,6 +143,8 @@ void NeutralFaceCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>
     float release = apvts.getRawParameterValue("release")->load();
     float rms = apvts.getRawParameterValue("RMS")->load();
     bool feedback = apvts.getRawParameterValue("feedback")->load();
+    bool linearAttack = apvts.getRawParameterValue("linear attack")->load();
+    bool linearRelease = apvts.getRawParameterValue("linear release")->load();
     float mix = apvts.getRawParameterValue("mix")->load() / 100.f;
     float makeUpGain = apvts.getRawParameterValue("gain")->load();
     
@@ -164,7 +166,18 @@ void NeutralFaceCompressorAudioProcessor::processBlock (juce::AudioBuffer<float>
         float target_dB = threshold_dB - (threshold_dB - controllingSample_dB) / ratio;
         float targetGain_dB = controllingSample_dB > threshold_dB ? target_dB - controllingSample_dB : 0.f;
         bool isAttacking = toDB(gain) > targetGain_dB;
-        float gain_dB = lerp(toDB(gain), targetGain_dB, getCoefficient(isAttacking ? attack : release, getSampleRate()));
+        float gain_dB = 0.f;
+
+        if (isAttacking && linearAttack) {
+            gain_dB = fmaxf(toDB(gain) - ((1.f/attack) * (1.f/getSampleRate())) * 5000.f, targetGain_dB);
+        }
+        else if (!isAttacking && linearRelease) {
+            gain_dB = fminf(toDB(gain) + ((1.f/release) * (1.f/getSampleRate())) * 5000.f, 0.f);
+        }
+        else {
+            gain_dB = lerp(toDB(gain), targetGain_dB, getCoefficient(isAttacking ? attack : release, getSampleRate()));
+        }
+        
         gain = dBToGain(gain_dB);
         
         for (int channel = 0; channel < totalNumInputChannels; ++channel)
